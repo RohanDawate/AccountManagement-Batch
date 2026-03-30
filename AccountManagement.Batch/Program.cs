@@ -1,10 +1,10 @@
-﻿using AccountManagement.Infrastructure;       // Fixes InfrastructureModule
+﻿using AccountManagement.Batch.Jobs;
+using AccountManagement.Infrastructure.Registration;
 using Autofac;
-using Autofac.Extensions.DependencyInjection; // Fixes AutofacServiceProviderFactory
-using Microsoft.Extensions.DependencyInjection; // Fixes .AddHostedService()
-using Microsoft.Extensions.Hosting;           // Fixes IHostBuilder and IServiceCollection extensions
-using Serilog;                                // Fixes .UseSerilog()
-
+using Autofac.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Serilog;
 
 namespace AccountManagement.Batch
 {
@@ -12,40 +12,38 @@ namespace AccountManagement.Batch
     {
         public static async Task Main(string[] args)
         {
-            // Configure Serilog sinks
-            Log.Logger = new LoggerConfiguration()
-                 .MinimumLevel.Information()
-                 .WriteTo.Console()
-                 .WriteTo.File(
-                     formatter: new Serilog.Formatting.Json.JsonFormatter(),
-                     path: "Logs/batch-log-.json",
-                     rollingInterval: RollingInterval.Day,
-                     retainedFileCountLimit: 7, // keep last 7 days
-                     fileSizeLimitBytes: 10_000_000, // 10 MB per file
-                     rollOnFileSizeLimit: true)
-                 .CreateLogger();
-
+            var jobName = typeof(OrderProcessingBatchJob).Name;
+            LoggingRegistration.ConfigureLogging("Batch", jobName);
 
             try
             {
-                var builder = Host.CreateDefaultBuilder(args)
-                    //.UseSerilog((ctx, cfg) => cfg.ReadFrom.Configuration(ctx.Configuration))
-                    .UseSerilog()
-                    .UseServiceProviderFactory(new AutofacServiceProviderFactory())
-                    .ConfigureContainer<ContainerBuilder>(cb =>
-                    {
-                        cb.RegisterModule(new InfrastructureModule());
-                    })
-                    .ConfigureServices((ctx, services) =>
-                    {
-                        services.AddHostedService<OrderProcessingBatchJob>();
-                    });
+                Log.Information("Starting Batch Host...");
 
-                await builder.Build().RunAsync();
+                // Use HostBuilder (not HostApplicationBuilder)
+                var host = Host.CreateDefaultBuilder(args)
+                    .UseServiceProviderFactory(new AutofacServiceProviderFactory())
+                    .ConfigureContainer<ContainerBuilder>(containerBuilder =>
+                    {
+                        // Register infrastructure services + interceptors
+                        containerBuilder.RegisterModule(new InfrastructureModule("Batch", jobName));
+                    })
+                    .ConfigureServices((context, services) =>
+                    {
+                        // Bind LoggingOptions from appsettings.json
+                        services.Configure<LoggingOptions>(
+                            context.Configuration.GetSection("LoggingOptions"));
+
+                        // Register the batch job itself
+                        services.AddHostedService<OrderProcessingBatchJob>();
+                    })
+                    .UseSerilog()
+                    .Build();
+
+                await host.RunAsync();
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, "Batch application terminated unexpectedly");
+                Log.Fatal(ex, "Host terminated unexpectedly");
             }
             finally
             {
