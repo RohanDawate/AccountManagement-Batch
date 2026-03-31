@@ -1,4 +1,5 @@
 ﻿using AccountManagement.Application;
+using AccountManagement.Infrastructure.Persistence;
 using AccountManagement.Infrastructure.Registration.Logging;
 using Autofac;
 using Autofac.Extras.DynamicProxy;

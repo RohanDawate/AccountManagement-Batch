@@ -7,9 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="CustomerService.cs" />
     <Compile Remove="InfrastructureModule.cs" />
     <Compile Remove="LoggingInterceptor.cs" />
-    <Compile Remove="Logging\BatchLogEntry.cs" />
+    <Compile Remove="OrderService.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,10 +23,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AccountManagement.Application\AccountManagement.Application.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Logging\" />
   </ItemGroup>
 
 </Project>

@@ -12,15 +12,16 @@ namespace AccountManagement.Batch
     {
         public static async Task Main(string[] args)
         {
-            var jobName = typeof(OrderProcessingBatchJob).Name;
+            var jobNameArg = args.FirstOrDefault(a => a.StartsWith("--job="));
+            var jobName = jobNameArg?.Split('=')[1] ?? "OrderGetJob";
+
             LoggingRegistration.ConfigureLogging("Batch", jobName);
 
             try
             {
-                Log.Information("Starting Batch Host...");
+                Log.Information("Starting Batch Host for {JobName}...", jobName);
 
-                // Use HostBuilder (not HostApplicationBuilder)
-                var host = Host.CreateDefaultBuilder(args)
+                var hostBuilder = Host.CreateDefaultBuilder(args)
                     .UseServiceProviderFactory(new AutofacServiceProviderFactory())
                     .ConfigureContainer<ContainerBuilder>(containerBuilder =>
                     {
@@ -33,13 +34,32 @@ namespace AccountManagement.Batch
                         services.Configure<LoggingOptions>(
                             context.Configuration.GetSection("LoggingOptions"));
 
-                        // Register the batch job itself
+                        // Register all jobs
                         services.AddHostedService<OrderProcessingBatchJob>();
-                    })
-                    .UseSerilog()
-                    .Build();
+                        services.AddHostedService<OrderGetJob>();
 
-                await host.RunAsync();
+                        // Filter: only run the requested job
+                        services.PostConfigure<HostOptions>(opts =>
+                        {
+                            opts.ServicesStartConcurrently = false;
+                        });
+                    })
+                    .UseSerilog();
+
+                var host = hostBuilder.Build();
+
+                // Resolve only the requested job
+                var job = host.Services.GetServices<IHostedService>()
+                    .FirstOrDefault(s => s.GetType().Name == jobName);
+
+                if (job == null)
+                {
+                    Log.Error("Job {JobName} not found.", jobName);
+                    return;
+                }
+
+                await job.StartAsync(CancellationToken.None);
+                await job.StopAsync(CancellationToken.None);
             }
             catch (Exception ex)
             {

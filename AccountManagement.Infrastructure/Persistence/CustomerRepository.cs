@@ -1,10 +1,7 @@
 ﻿using AccountManagement.Application;
 using AccountManagement.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace AccountManagement.Infrastructure
+namespace AccountManagement.Infrastructure.Persistence
 {
     public class CustomerRepository : ICustomerRepository
     {

@@ -19,26 +19,26 @@ namespace AccountManagement.Infrastructure.Registration.Logging
 
         protected override void LogEntry(IInvocation invocation, string className, string methodName)
         {
-            var entry = new ApiEntry(className, methodName, BuildArgs(invocation),
+            var entry = new ApiEntry("ENTRY", className, methodName, BuildArgs(invocation),
                                      _httpContextAccessor.HttpContext?.TraceIdentifier);
             Log.Information("{@ApiEntry}", entry);
         }
 
         protected override void LogExit(IInvocation invocation, string className, string methodName, long durationMs, object? result)
         {
-            var exit = new ApiExit(className, methodName, durationMs, result, _httpContextAccessor.HttpContext?.TraceIdentifier);
+            var exit = new ApiExit("EXIT", className, methodName, durationMs, result, _httpContextAccessor.HttpContext?.TraceIdentifier);
             Log.Information("{@ApiExit}", exit);
         }
 
         protected override void LogError(IInvocation invocation, string className, string methodName, long durationMs, Exception ex)
         {
-            var error = new ApiError(className, methodName, durationMs, CleanException(ex), _httpContextAccessor.HttpContext?.TraceIdentifier);
+            var error = new ApiError("ERROR", className, methodName, durationMs, CleanException(ex), _httpContextAccessor.HttpContext?.TraceIdentifier);
             Log.Error("{@ApiError}", error);
         }
     }
 
-    public record ApiEntry(string Class, string Method, object Args, string? RequestId);
-    public record ApiExit(string Class, string Method, long DurationMs, object? Result, string? RequestId);
-    public record ApiError(string Class, string Method, long DurationMs, string Exception, string? RequestId);
+    public record ApiEntry(string Direction, string Class, string Method, object Args, string? RequestId);
+    public record ApiExit(string Direction, string Class, string Method, long DurationMs, object? Result, string? RequestId);
+    public record ApiError(string Direction, string Class, string Method, long DurationMs, string Exception, string? RequestId);
 
 }

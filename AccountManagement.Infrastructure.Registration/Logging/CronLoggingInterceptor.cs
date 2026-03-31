@@ -18,24 +18,24 @@ namespace AccountManagement.Infrastructure.Registration.Logging
 
         protected override void LogEntry(IInvocation invocation, string className, string methodName)
         {
-            var entry = new CronEntry(_jobName, className, methodName, BuildArgs(invocation));
+            var entry = new CronEntry("ENTRY", _jobName, className, methodName, BuildArgs(invocation));
             Log.Information("{@CronEntry}", entry);
         }
 
         protected override void LogExit(IInvocation invocation, string className, string methodName, long durationMs, object? result)
         {
-            var exit = new CronExit(_jobName, className, methodName, durationMs, result);
+            var exit = new CronExit("EXIT", _jobName, className, methodName, durationMs, result);
             Log.Information("{@CronExit}", exit);
         }
 
         protected override void LogError(IInvocation invocation, string className, string methodName, long durationMs, Exception ex)
         {
-            var error = new CronError(_jobName, className, methodName, durationMs, CleanException(ex));
+            var error = new CronError("ERROR", _jobName, className, methodName, durationMs, CleanException(ex));
             Log.Error("{@CronError}", error);
         }
     }
 
-    public record CronEntry(string JobName, string Class, string Method, object Args);
-    public record CronExit(string JobName, string Class, string Method, long DurationMs, object? Result);
-    public record CronError(string JobName, string Class, string Method, long DurationMs, string Exception);
+    public record CronEntry(string Direction, string JobName, string Class, string Method, object Args);
+    public record CronExit(string Direction, string JobName, string Class, string Method, long DurationMs, object? Result);
+    public record CronError(string Direction, string JobName, string Class, string Method, long DurationMs, string Exception);
 }

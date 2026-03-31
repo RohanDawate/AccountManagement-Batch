@@ -2,6 +2,7 @@
 using AccountManagement.Infrastructure.Registration.Logging;
 using Serilog;
 using Microsoft.Extensions.DependencyInjection;
+using AccountManagement.Infrastructure.Persistence;
 
 
 namespace AccountManagement.Infrastructure.Registration
@@ -29,7 +30,7 @@ namespace AccountManagement.Infrastructure.Registration
                     .WriteTo.Console()
                     .WriteTo.File(
                         formatter: new Serilog.Formatting.Json.JsonFormatter(),
-                        path: "Logs/API/accmgmt/accmgmt-.log", // base name
+                        path: "Logs/API/accmgmt/accmgmt-.json", // base name
                         rollingInterval: RollingInterval.Day) // Serilog appends yyyyMMdd
                     .CreateLogger();
             }

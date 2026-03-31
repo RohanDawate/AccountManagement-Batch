@@ -1,7 +1,7 @@
 ﻿using AccountManagement.Application;
 using AccountManagement.Domain.Entities;
 
-namespace AccountManagement.Infrastructure
+namespace AccountManagement.Application
 {
     public class CustomerService : ICustomerService
     {
