@@ -4,10 +4,12 @@ using Microsoft.Extensions.Logging;
 
 namespace AccountManagement.Batch.Jobs
 {
-    public class OrderProcessingBatchJob : BackgroundService
+    public class OrderProcessingBatchJob : BackgroundService, IBatchJob
     {
         private readonly ILogger<OrderProcessingBatchJob> _logger;
         private readonly IOrderService _orderService;
+
+        public string Name => nameof(OrderProcessingBatchJob);
 
         public OrderProcessingBatchJob(IOrderService orderService, ILogger<OrderProcessingBatchJob> logger)
         {
@@ -19,11 +21,11 @@ namespace AccountManagement.Batch.Jobs
         {
             _logger.LogInformation("Starting OrderProcessingBatchJob...");
 
-            var orders = await _orderService.GetAllAsync(ct);
+            var orders = await _orderService.GetAllOrdersAsync(ct);
             foreach (var order in orders.Where(o => o.Status == "Pending"))
             {
                 _logger.LogInformation("Processing Order {OrderId}", order.Id);
-                await _orderService.UpdateAsync(order, ct);
+                await _orderService.UpdateOrderAsync(order, ct);
             }
 
             _logger.LogInformation("OrderProcessingBatchJob completed.");

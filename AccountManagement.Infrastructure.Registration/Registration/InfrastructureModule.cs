@@ -21,13 +21,21 @@ namespace AccountManagement.Infrastructure.Registration
         {
 
             // Repos & services
-            builder.RegisterType<OrderRepository>().As<IOrderRepository>();
+            builder.RegisterType<OrderRepository>()
+                   .As<IOrderRepository>()
+                   .EnableInterfaceInterceptors()
+                   .InterceptedBy(typeof(BatchLoggingInterceptor));
+
             builder.RegisterType<OrderService>()
                    .As<IOrderService>()
                    .EnableInterfaceInterceptors()
                    .InterceptedBy(GetInterceptorType());
 
-            builder.RegisterType<CustomerRepository>().As<ICustomerRepository>();
+            builder.RegisterType<CustomerRepository>()
+                    .As<ICustomerRepository>()
+                   .EnableInterfaceInterceptors()
+                   .InterceptedBy(typeof(BatchLoggingInterceptor));
+
             builder.RegisterType<CustomerService>()
                    .As<ICustomerService>()
                    .EnableInterfaceInterceptors()
@@ -68,11 +76,3 @@ namespace AccountManagement.Infrastructure.Registration
     }
 
 }
-
-//// Register interceptors
-//builder.RegisterType<ApiLoggingInterceptor>();
-//builder.RegisterType<BatchLoggingInterceptor>()
-//       .WithParameter("jobName", _jobName);
-//builder.RegisterType<CronLoggingInterceptor>()
-//       .WithParameter("jobName", _jobName);
-//builder.RegisterType<DefaultLoggingInterceptor>();

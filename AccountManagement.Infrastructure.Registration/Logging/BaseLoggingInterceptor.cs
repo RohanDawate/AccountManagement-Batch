@@ -14,11 +14,19 @@ namespace AccountManagement.Infrastructure.Registration.Logging
         protected BaseLoggingInterceptor(ILogger logger, string contextType, IOptions<LoggingOptions> options)
         {
             _logger = logger;
-            _contextType = contextType; _options = options.Value;
+            _contextType = contextType; 
+            _options = options.Value;
         }
 
         public void Intercept(IInvocation invocation)
         {
+            if (!_options.Enabled)
+            {
+                // Logging disabled → just run the method
+                invocation.Proceed();
+                return;
+            }
+
             var className = invocation.TargetType?.Name ?? "<UnknownClass>";
             var methodName = invocation.Method?.Name ?? "<UnknownMethod>";
 

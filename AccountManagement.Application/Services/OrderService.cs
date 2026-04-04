@@ -12,7 +12,7 @@ namespace AccountManagement.Application
             _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         }
 
-        public async Task<int> CreateAsync(Order order, CancellationToken ct)
+        public async Task<int> AddOrderAsync(Order order, CancellationToken ct)
         {
             if (order == null)
                 throw new ArgumentNullException(nameof(order));
@@ -20,39 +20,39 @@ namespace AccountManagement.Application
             if (order.TotalAmount <= 0)
                 throw new ArgumentException("Order total must be greater than zero.");
 
-            return await _repository.CreateAsync(order, ct);
+            return await _repository.AddOrderAsync(order, ct);
         }
 
-        public async Task DeleteAsync(int id, CancellationToken ct)
+        public async Task DeleteOrderAsync(int id, CancellationToken ct)
         {
-            var existing = await _repository.GetByIdAsync(id, ct);
+            var existing = await _repository.GetOrderByIdAsync(id, ct);
             if (existing == null)
                 throw new ArgumentException($"Order with id {id} not found.");
 
-            await _repository.DeleteAsync(id, ct);
+            await _repository.DeleteOrderAsync(id, ct);
         }
 
-        public async Task<IEnumerable<Order>> GetAllAsync(CancellationToken ct)
+        public async Task<IEnumerable<Order>> GetAllOrdersAsync(CancellationToken ct)
         {
-            return await _repository.GetAllAsync(ct);
+            return await _repository.GetAllOrdersAsync(ct);
         }
 
-        public async Task<Order?> GetByIdAsync(int id, CancellationToken ct)
+        public async Task<Order?> GetOrderByIdAsync(int id, CancellationToken ct)
         {
-            return await _repository.GetByIdAsync(id, ct)
+            return await _repository.GetOrderByIdAsync(id, ct)
                     ?? throw new ArgumentException($"Order with id {id} not found.");
         }
 
-        public async Task UpdateAsync(Order order, CancellationToken ct)
+        public async Task UpdateOrderAsync(Order order, CancellationToken ct)
         {
             if (order == null)
                 throw new ArgumentNullException(nameof(order));
 
-            var existing = await _repository.GetByIdAsync(order.Id, ct);
+            var existing = await _repository.GetOrderByIdAsync(order.Id, ct);
             if (existing == null)
                 throw new ArgumentException($"Order with id {order.Id} not found.");
 
-            await _repository.UpdateAsync(order, ct);
+            await _repository.UpdateOrderAsync(order, ct);
         }
     }
 }
