@@ -1,6 +1,8 @@
 ﻿using AccountManagement.Infrastructure.Registration;
+using AccountManagement.Infrastructure.Registration.Logging;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
@@ -19,6 +21,8 @@ namespace AccountManagement.Batch
             {
                 Log.Information("Starting Batch Host for {JobName}...", jobName);
 
+                RunContext.Initialize("Batch");
+
                 var hostBuilder = Host.CreateDefaultBuilder(args)
                     .UseServiceProviderFactory(new AutofacServiceProviderFactory())
                     .ConfigureContainer<ContainerBuilder>(containerBuilder =>
@@ -34,23 +38,17 @@ namespace AccountManagement.Batch
                     })
                     .UseSerilog((context, services, loggerConfig) =>
                     {
-                        // Resolve IOptions<LoggingOptions> and then take the Value
-                        var options = services.GetRequiredService<IOptions<LoggingOptions>>().Value;
+                        // Bind strongly typed LoggingConfig from appsettings.json
+                        var loggingConfig = context.Configuration.GetSection("LoggingConfig")
+                                                                 .Get<LoggingConfig>();
 
-                        var keyString = context.Configuration["Logging:EncryptionKey"];
-                        var ivString = context.Configuration["Logging:EncryptionIV"];
-                        var basePath = context.Configuration["Logging:BasePath"];
-
-                        if (string.IsNullOrWhiteSpace(keyString) || string.IsNullOrWhiteSpace(ivString))
+                        if (loggingConfig == null)
                         {
-                            throw new InvalidOperationException("EncryptionKey or EncryptionIV is missing in configuration.");
+                            throw new InvalidOperationException("LoggingConfig section is missing in configuration.");
                         }
 
-                        var key = Convert.FromBase64String(keyString);
-                        var iv = Convert.FromBase64String(ivString);
-
-                        // Pass the raw LoggingOptions object into ConfigureLogging
-                        LoggingRegistration.ConfigureLogging(loggerConfig, "Batch", jobName, options, key, iv, basePath);
+                        // Configure Serilog using the composite object
+                        LoggingRegistration.ConfigureLogging(loggerConfig, loggingConfig);
                     });
 
                 var host = hostBuilder.Build();

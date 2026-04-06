@@ -13,6 +13,8 @@ namespace AccountManagement.Infrastructure.Registration
             // Register repos and services
             services.AddScoped<IOrderRepository, OrderRepository>();
             services.AddScoped<IOrderService, OrderService>();
+            services.AddScoped<ICustomerRepository, CustomerRepository>();
+            services.AddScoped<ICustomerService, CustomerService>();
 
             services.AddTransient<ApiLoggingInterceptor>();
             services.AddTransient<BatchLoggingInterceptor>();
@@ -20,31 +22,34 @@ namespace AccountManagement.Infrastructure.Registration
             services.AddTransient<DefaultLoggingInterceptor>();
         }
 
-        public static void ConfigureLogging(LoggerConfiguration loggerConfig, string contextType, string jobName = "default", 
-            LoggingOptions? options = null, byte[]? key = null, byte[]? iv = null, string? basePath = null)
+        public static void ConfigureLogging(LoggerConfiguration loggerConfig, LoggingConfig config)
         {
             loggerConfig
                 .MinimumLevel.Information()
                 .Enrich.With<FlatStructureEnricher>();
 
             // Apply encryption if enabled
-            if (options?.Enabled == true && options.EncryptNonWhitelisted && key != null && iv != null)
+            if (config.Options?.Enabled == true && config.Options.EncryptNonWhitelisted
+                && !string.IsNullOrWhiteSpace(config.EncryptionKey)
+                && !string.IsNullOrWhiteSpace(config.EncryptionIV))
             {
-                loggerConfig.Enrich.With(new EncryptionEnricher(options, key, iv));
+                var key = Convert.FromBase64String(config.EncryptionKey);
+                var iv = Convert.FromBase64String(config.EncryptionIV);
+                loggerConfig.Enrich.With(new EncryptionEnricher(config.Options, key, iv)); 
             }
 
             // Default to current directory if not provided
-            basePath ??= Path.Combine(AppContext.BaseDirectory, "Logs");
+            var basePath = config.BasePath ?? Path.Combine(AppContext.BaseDirectory, "Logs");
 
-            if (contextType == "API")
+            if (config.ContextType == "API")
             {
                 string path = Path.Combine(basePath, "API", "accmgmt", "accmgmt-.json");
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
                 loggerConfig
-                    .WriteTo.Async(c => c.Console(new FlatJsonFormatter()))
+                    .WriteTo.Async(c => c.Console(new OrderedFlatJsonFormatter()))
                     .WriteTo.Async(f => f.File(
-                        formatter: new FlatJsonFormatter(),
+                        formatter: new OrderedFlatJsonFormatter(),
                         path: path,
                         rollingInterval: RollingInterval.Day));
             }
@@ -52,19 +57,13 @@ namespace AccountManagement.Infrastructure.Registration
             {
                 string date = DateTimeOffset.Now.ToString("yyyyMMdd");
                 string time = DateTimeOffset.Now.ToString("HHmm");
-                string path = Path.Combine(basePath, contextType, jobName, $"{jobName}_{date}_{time}.json");
+                string path = Path.Combine(basePath, config.ContextType, config.JobName, $"{config.JobName}_{date}_{time}.json");
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
-                //loggerConfig
-                //    .WriteTo.Async(c => c.Console(new FlatJsonFormatter()))
-                //    .WriteTo.Async(f => f.File(
-                //        formatter: new FlatJsonFormatter(),
-                //        path: path));
-
                 loggerConfig
-                    .WriteTo.Console(new FlatJsonFormatter())
+                    .WriteTo.Console(new OrderedFlatJsonFormatter())
                     .WriteTo.File(
-                        formatter: new FlatJsonFormatter(),
+                        formatter: new OrderedFlatJsonFormatter(),
                         path: path);
             }
         }

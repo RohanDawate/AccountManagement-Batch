@@ -1,4 +1,5 @@
 ﻿using AccountManagement.Application;
+using AccountManagement.Application.Interfaces.Data;
 using AccountManagement.Domain.Entities;
 using System.Collections.Concurrent;
 
@@ -23,18 +24,19 @@ namespace AccountManagement.Infrastructure.Persistence
             AddOrderAsync(new Order { CustomerId = 5, OrderDate = DateTime.UtcNow, Status = "Shipped", TotalAmount = 310.25m }).Wait();
         }
 
-        public Task<Order?> GetOrderByIdAsync(int id, CancellationToken ct = default)
+        // Explicit implementation of IRepository<Order>
+        Task<Order?> IRepository<Order>.GetByIdAsync(int id, CancellationToken ct)
         {
             _orders.TryGetValue(id, out var order);
             return Task.FromResult(order);
         }
 
-        public Task<IEnumerable<Order>> GetAllOrdersAsync(CancellationToken ct = default)
+        Task<IEnumerable<Order>> IRepository<Order>.GetAllAsync(CancellationToken ct = default)
         {
             return Task.FromResult<IEnumerable<Order>>(_orders.Values.ToList());
         }
 
-        public Task<int> AddOrderAsync(Order order, CancellationToken ct = default)
+        Task<int> IRepository<Order>.AddAsync(Order order, CancellationToken ct = default)
         {
             if (order == null) throw new ArgumentNullException(nameof(order));
 
@@ -45,7 +47,7 @@ namespace AccountManagement.Infrastructure.Persistence
             return Task.FromResult(id);
         }
 
-        public Task UpdateOrderAsync(Order order, CancellationToken ct = default)
+        Task IRepository<Order>.UpdateAsync(Order order, CancellationToken ct = default)
         {
             if (order == null) throw new ArgumentNullException(nameof(order));
             if (!_orders.ContainsKey(order.Id))
@@ -55,10 +57,26 @@ namespace AccountManagement.Infrastructure.Persistence
             return Task.CompletedTask;
         }
 
-        public Task DeleteOrderAsync(int id, CancellationToken ct = default)
+        Task IRepository<Order>.DeleteAsync(int id, CancellationToken ct = default)
         {
             _orders.TryRemove(id, out _);
             return Task.CompletedTask;
         }
+
+        // Expressive names visible on IOrderRepository
+        public Task<Order?> GetOrderByIdAsync(int id, CancellationToken ct = default)
+            => ((IRepository<Order>)this).GetByIdAsync(id, ct);
+
+        public Task<IEnumerable<Order>> GetAllOrdersAsync(CancellationToken ct = default)
+            => ((IRepository<Order>)this).GetAllAsync(ct);
+
+        public Task<int> AddOrderAsync(Order order, CancellationToken ct = default)
+            => ((IRepository<Order>)this).AddAsync(order, ct);
+
+        public Task UpdateOrderAsync(Order order, CancellationToken ct = default)
+            => ((IRepository<Order>)this).UpdateAsync(order, ct);
+
+        public Task DeleteOrderAsync(int id, CancellationToken ct = default)
+            => ((IRepository<Order>)this).DeleteAsync(id, ct);
     }
 }
