@@ -361,3 +361,8 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/AccountManagement.Domain/Entities/Job.cs
+/AccountManagement.Application/Services/JobService.cs
+/AccountManagement.Infrastructure/Persistence/JobRepository.cs
+/AccountManagement.Application/Interfaces/Services/IJobService.cs
+/AccountManagement.Application/Interfaces/Repositories/IJobRepository.cs
