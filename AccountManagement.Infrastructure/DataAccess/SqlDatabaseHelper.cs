@@ -1,7 +1,7 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using AccountManagement.Application.Interfaces.Data;
+using Microsoft.Data.SqlClient;
 using System.Data;
 using System.Data.Common;
-using AccountManagement.Application.Interfaces.Data;
 
 namespace AccountManagement.Infrastructure.DataAccess
 {

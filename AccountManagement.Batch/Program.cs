@@ -1,11 +1,10 @@
 ﻿using AccountManagement.Infrastructure.Registration;
-using AccountManagement.Infrastructure.Registration.Logging;
+using AccountManagement.Infrastructure.Registration.Enrichers;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using Serilog;
 
 namespace AccountManagement.Batch
@@ -34,7 +33,7 @@ namespace AccountManagement.Batch
                     {
                         // Bind LoggingOptions from appsettings.json
                         services.Configure<LoggingOptions>(
-                            context.Configuration.GetSection("LoggingOptions"));
+                            context.Configuration.GetSection("LoggingConfig:Options"));
                     })
                     .UseSerilog((context, services, loggerConfig) =>
                     {
@@ -47,8 +46,10 @@ namespace AccountManagement.Batch
                             throw new InvalidOperationException("LoggingConfig section is missing in configuration.");
                         }
 
+                        var encryptionService = new LogEncryptionService(loggingConfig.EncryptionKey, loggingConfig.EncryptionIV);
+
                         // Configure Serilog using the composite object
-                        LoggingRegistration.ConfigureLogging(loggerConfig, loggingConfig);
+                        LoggingRegistration.ConfigureLogging(loggerConfig, loggingConfig, encryptionService);
                     });
 
                 var host = hostBuilder.Build();

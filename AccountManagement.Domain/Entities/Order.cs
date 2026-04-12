@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace AccountManagement.Domain.Entities
+﻿namespace AccountManagement.Domain.Entities
 {
     public class Order
     {

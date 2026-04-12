@@ -1,5 +1,6 @@
 ﻿using AccountManagement.Application;
 using AccountManagement.Infrastructure.Persistence;
+using AccountManagement.Infrastructure.Registration.Enrichers;
 using AccountManagement.Infrastructure.Registration.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -22,20 +23,24 @@ namespace AccountManagement.Infrastructure.Registration
             services.AddTransient<DefaultLoggingInterceptor>();
         }
 
-        public static void ConfigureLogging(LoggerConfiguration loggerConfig, LoggingConfig config)
+        public static void ConfigureLogging(LoggerConfiguration loggerConfig, LoggingConfig config, LogEncryptionService encryptionService)
         {
+            // 1. Initialize the formatter with the ordered fields from appsettings
+            var orderedFields = config.Options?.OrderedFields ?? new List<string>();
+            var formatter = new OrderedFlatJsonFormatter(orderedFields);
+
             loggerConfig
                 .MinimumLevel.Information()
+                .Enrich.FromLogContext() // Keeps support for manual PushProperty
+                .Enrich.With<GlobalContextEnricher>() // <--- Adds your TraceId and RunId automatically
                 .Enrich.With<FlatStructureEnricher>();
 
             // Apply encryption if enabled
-            if (config.Options?.Enabled == true && config.Options.EncryptNonWhitelisted
-                && !string.IsNullOrWhiteSpace(config.EncryptionKey)
-                && !string.IsNullOrWhiteSpace(config.EncryptionIV))
+            if (config.Options?.Enabled == true && config.Options.EncryptNonWhitelisted)
             {
                 var key = Convert.FromBase64String(config.EncryptionKey);
                 var iv = Convert.FromBase64String(config.EncryptionIV);
-                loggerConfig.Enrich.With(new EncryptionEnricher(config.Options, key, iv)); 
+                loggerConfig.Enrich.With(new EncryptionEnricher(config.Options, encryptionService)); 
             }
 
             // Default to current directory if not provided
@@ -47,9 +52,9 @@ namespace AccountManagement.Infrastructure.Registration
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
                 loggerConfig
-                    .WriteTo.Async(c => c.Console(new OrderedFlatJsonFormatter()))
+                    .WriteTo.Async(c => c.Console(new OrderedFlatJsonFormatter(orderedFields)))
                     .WriteTo.Async(f => f.File(
-                        formatter: new OrderedFlatJsonFormatter(),
+                        formatter: new OrderedFlatJsonFormatter(orderedFields),
                         path: path,
                         rollingInterval: RollingInterval.Day));
             }
@@ -61,9 +66,9 @@ namespace AccountManagement.Infrastructure.Registration
                 Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
                 loggerConfig
-                    .WriteTo.Console(new OrderedFlatJsonFormatter())
+                    .WriteTo.Console(new OrderedFlatJsonFormatter(orderedFields))
                     .WriteTo.File(
-                        formatter: new OrderedFlatJsonFormatter(),
+                        formatter: new OrderedFlatJsonFormatter(orderedFields),
                         path: path);
             }
         }

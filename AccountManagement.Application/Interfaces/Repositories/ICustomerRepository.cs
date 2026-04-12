@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using AccountManagement.Domain.Entities;
+﻿using AccountManagement.Domain.Entities;
 
 namespace AccountManagement.Application
 {

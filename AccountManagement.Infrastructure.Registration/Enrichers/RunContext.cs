@@ -1,6 +1,6 @@
 ﻿using Serilog.Context;
 
-namespace AccountManagement.Infrastructure.Registration.Logging
+namespace AccountManagement.Infrastructure.Registration.Enrichers
 {
     public static class RunContext
     {

@@ -1,7 +1,7 @@
 ﻿using Serilog.Core;
 using Serilog.Events;
 
-namespace AccountManagement.Infrastructure.Registration.Logging
+namespace AccountManagement.Infrastructure.Registration.Enrichers
 {
     public class FlatStructureEnricher : ILogEventEnricher
     {

@@ -1,5 +1,4 @@
-﻿using AccountManagement.Application;
-using AccountManagement.Domain.Entities;
+﻿using AccountManagement.Domain.Entities;
 
 namespace AccountManagement.Application
 {

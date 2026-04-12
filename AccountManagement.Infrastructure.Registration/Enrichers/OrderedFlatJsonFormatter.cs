@@ -1,28 +1,38 @@
 ﻿using Serilog.Events;
 using Serilog.Formatting;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 
-namespace AccountManagement.Infrastructure.Registration.Logging
+namespace AccountManagement.Infrastructure.Registration.Enrichers
 {
     public class OrderedFlatJsonFormatter : ITextFormatter
     {
-        private static readonly string[] OrderedFields = {
-            "Timestamp", "Level", "ContextType", "RunId", "TraceId", "Direction", "JobName", 
-            "Class", "Method", "Args", "Error", "Exception"
-        };
+        //private static readonly string[] OrderedFields = {
+        //    "Timestamp", "Level", "ContextType", "RunId", "TraceId", "JobName", 
+        //    "Direction", "Class", "Method", "DurationMs", "Args", "Error", "Exception"
+        //};
+
+        private readonly List<string> _orderedFields;
 
         private static readonly JsonSerializerOptions _options = new()
         {
             WriteIndented = false,
-            Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
         };
+
+        // Inject the fields here
+        public OrderedFlatJsonFormatter(List<string> orderedFields)
+        {
+            // Fallback to a default list if config is empty
+            _orderedFields = orderedFields ?? new List<string> { "Timestamp", "Level", "Message" };
+        }
 
         public void Format(LogEvent logEvent, TextWriter output)
         {
             var dict = new Dictionary<string, object?>();
 
             // Ordered core fields
-            foreach (var field in OrderedFields)
+            foreach (var field in _orderedFields)
             {
                 switch (field)
                 {
@@ -32,6 +42,11 @@ namespace AccountManagement.Infrastructure.Registration.Logging
 
                     case "Level": 
                         dict[field] = logEvent.Level.ToString(); 
+                        break;
+
+                    case "Exception":
+                        if (logEvent.Exception != null)
+                            dict[field] = logEvent.Exception.ToString();
                         break;
 
                     default:

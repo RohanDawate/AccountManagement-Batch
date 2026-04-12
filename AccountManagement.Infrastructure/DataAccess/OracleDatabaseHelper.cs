@@ -1,7 +1,7 @@
-﻿using Oracle.ManagedDataAccess.Client;
+﻿using AccountManagement.Application.Interfaces.Data;
+using Oracle.ManagedDataAccess.Client;
 using System.Data;
 using System.Data.Common;
-using AccountManagement.Application.Interfaces.Data;
 
 namespace AccountManagement.Infrastructure.DataAccess
 {
