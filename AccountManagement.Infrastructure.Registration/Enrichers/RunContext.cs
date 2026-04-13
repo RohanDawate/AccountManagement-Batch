@@ -7,15 +7,15 @@ namespace AccountManagement.Infrastructure.Registration.Enrichers
         public static string ContextType { get; private set; } = string.Empty;
         public static string RunId { get; private set; } = string.Empty;
 
-        public static void Initialize(string contextType)
+        public static void Initialize(string contextType, string? identity = null)
         {
             ContextType = contextType;
 
-            var identifier = new Random().Next(10000, 99999); // 5-digit
+            var runIdentifier = identity ?? new Random().Next(10000, 99999).ToString();
             var date = DateTimeOffset.Now.ToString("yyyyMMdd");
-            var time = DateTimeOffset.Now.ToString("HHmmss");
+            var time = DateTimeOffset.Now.ToString("HHmm");
 
-            RunId = $"{contextType}_{identifier}_{date}_{time}";
+            RunId = $"{contextType}_{runIdentifier}_{date}_{time}";
 
             LogContext.PushProperty("ContextType", ContextType);
             LogContext.PushProperty("RunId", RunId);

@@ -7,10 +7,14 @@ namespace AccountManagement.Infrastructure.Registration.Enrichers
 {
     public class OrderedFlatJsonFormatter : ITextFormatter
     {
-        //private static readonly string[] OrderedFields = {
-        //    "Timestamp", "Level", "ContextType", "RunId", "TraceId", "JobName", 
-        //    "Direction", "Class", "Method", "DurationMs", "Args", "Error", "Exception"
-        //};
+        // Centralize all tags that should not be logged as a "Message"
+        private static readonly HashSet<string> SystemTags = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "{@BatchEntry}", "{@BatchExit}", "{@BatchError}",
+            "{@ApiEntry}", "{@ApiExit}", "{@ApiError}",
+            "{@CronEntry}", "{@CronExit}", "{@CronError}",
+            "{@DefaultEntry}", "{@DefaultExit}", "{@DefaultError}"
+        };
 
         private readonly List<string> _orderedFields;
 
@@ -31,7 +35,6 @@ namespace AccountManagement.Infrastructure.Registration.Enrichers
         {
             var dict = new Dictionary<string, object?>();
 
-            // Ordered core fields
             foreach (var field in _orderedFields)
             {
                 switch (field)
@@ -43,6 +46,18 @@ namespace AccountManagement.Infrastructure.Registration.Enrichers
                     case "Level": 
                         dict[field] = logEvent.Level.ToString(); 
                         break;
+
+                    case "Message":
+                        var template = logEvent.MessageTemplate.Text;
+                        if (SystemTags.Contains(template))
+                            continue;
+
+                        var renderedMessage = logEvent.RenderMessage();
+                        dict[field] = renderedMessage.Replace("\"", "");
+                        break;
+
+                    case "SourceContext":
+                        continue;
 
                     case "Exception":
                         if (logEvent.Exception != null)
@@ -59,6 +74,9 @@ namespace AccountManagement.Infrastructure.Registration.Enrichers
             // Flatten any additional properties not in OrderedFields
             foreach (var prop in logEvent.Properties)
             {
+                if (prop.Key == "SourceContext")
+                    continue;
+
                 if (!dict.ContainsKey(prop.Key))
                     dict[prop.Key] = Simplify(prop.Value);
             }

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog;
+using Serilog.Context;
 
 namespace AccountManagement.Batch
 {
@@ -16,13 +17,17 @@ namespace AccountManagement.Batch
             var jobNameArg = args.FirstOrDefault(a => a.StartsWith("--job="));
             var jobName = jobNameArg?.Split('=')[1] ?? "OrderProcessingBatchJob";
 
+            // Start timer at the very beginning of the logic
+            var watch = System.Diagnostics.Stopwatch.StartNew();
+
             try
             {
-                Log.Information("Starting Batch Host for {JobName}...", jobName);
-
+                // Initializing the logs for context type and run id
                 RunContext.Initialize("Batch");
 
-                var hostBuilder = Host.CreateDefaultBuilder(args)
+                using (LogContext.PushProperty("JobName", jobName))
+                {
+                    var hostBuilder = Host.CreateDefaultBuilder(args)
                     .UseServiceProviderFactory(new AutofacServiceProviderFactory())
                     .ConfigureContainer<ContainerBuilder>(containerBuilder =>
                     {
@@ -46,17 +51,23 @@ namespace AccountManagement.Batch
                             throw new InvalidOperationException("LoggingConfig section is missing in configuration.");
                         }
 
-                        var encryptionService = new LogEncryptionService(loggingConfig.EncryptionKey, loggingConfig.EncryptionIV);
+                        var encryptionService = new LogEncryptionService(
+                            loggingConfig.EncryptionKey ?? string.Empty,
+                            loggingConfig.EncryptionIV ?? string.Empty
+                        );
 
                         // Configure Serilog using the composite object
                         LoggingRegistration.ConfigureLogging(loggerConfig, loggingConfig, encryptionService);
                     });
 
-                var host = hostBuilder.Build();
-                var job = host.Services.GetRequiredService<IHostedService>();
+                    var host = hostBuilder.Build();
+                    var job = host.Services.GetRequiredService<IHostedService>();
 
-                await job.StartAsync(CancellationToken.None);
-                await job.StopAsync(CancellationToken.None);
+                    Log.Information("Batch Process started for {JobName}.", jobName);
+
+                    await job.StartAsync(CancellationToken.None);
+                    await job.StopAsync(CancellationToken.None);
+                }
 
             }
             catch (Exception ex)
@@ -65,6 +76,8 @@ namespace AccountManagement.Batch
             }
             finally
             {
+                watch.Stop();
+                Log.Information("Batch Process finished for {JobName}. Total Execution Time: {DurationMs}ms", jobName, watch.ElapsedMilliseconds);
                 Log.CloseAndFlush();
             }
         }

@@ -30,7 +30,9 @@ namespace AccountManagement.Infrastructure.Registration.Enrichers
                 var propValue = logEvent.Properties[key];
 
                 // We only want to encrypt the actual value, not the Serilog formatting quotes
-                string rawValue = propValue is ScalarValue scalar ? scalar.Value?.ToString() : propValue.ToString();
+                string rawValue = propValue is ScalarValue scalar
+                    ? scalar.Value?.ToString() ?? string.Empty
+                    : propValue.ToString() ?? string.Empty;
 
                 if (!string.IsNullOrEmpty(rawValue))
                 {

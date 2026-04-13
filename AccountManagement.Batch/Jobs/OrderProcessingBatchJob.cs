@@ -9,13 +9,15 @@ namespace AccountManagement.Batch.Jobs
     public class OrderProcessingBatchJob : BackgroundService, IBatchJob
     {
         private readonly ILogger<OrderProcessingBatchJob> _logger;
+        private readonly IHostApplicationLifetime _lifetime;
         private readonly IOrderService _orderService;
 
         public string Name => nameof(OrderProcessingBatchJob);
 
-        public OrderProcessingBatchJob(IOrderService orderService, ILogger<OrderProcessingBatchJob> logger)
+        public OrderProcessingBatchJob(IOrderService orderService, IHostApplicationLifetime lifetime, ILogger<OrderProcessingBatchJob> logger)
         {
             _logger = logger;
+            _lifetime = lifetime;
             _orderService = orderService;
         }
 
@@ -26,8 +28,6 @@ namespace AccountManagement.Batch.Jobs
 
             using (TraceContext.BeginScope(mainTraceId))
             {
-                _logger.LogInformation("Starting OrderProcessingBatchJob...");
-
                 try
                 {
                     List<Order> orders;
@@ -35,29 +35,27 @@ namespace AccountManagement.Batch.Jobs
                     // 2. Separate Scope for "Get All Orders"
                     using (TraceContext.BeginScope(TraceIdHelper.Generate("ORD_GET")))
                     {
-                        _logger.LogInformation("Fetching pending orders from database...");
                         orders = (await _orderService.GetAllOrdersAsync(ct)).ToList();
                     }
 
                     foreach (var order in orders.Where(o => o.Status == "Pending"))
                     {
                         // 3. Separate Scope for "Each Individual Record Update"
-                        using (TraceContext.BeginScope(TraceIdHelper.Generate("ORD_UPD")))
+                        using (TraceContext.BeginScope(TraceIdHelper.Generate("ORD_UPD"), "OrderId", order.Id.ToString()))
                         {
-                            _logger.LogInformation("Processing Order {OrderId}", order.Id);
                             await _orderService.UpdateOrderAsync(order, ct);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Error during batch execution");
+                    _logger.LogCritical(ex, "Error during batch execution");
                 }
-
-                _logger.LogInformation("OrderProcessingBatchJob completed.");
+                finally
+                {
+                    _lifetime.StopApplication();
+                }
             }
-
-            Environment.Exit(0);
         }
     }
 

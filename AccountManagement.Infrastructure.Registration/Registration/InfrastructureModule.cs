@@ -19,47 +19,55 @@ namespace AccountManagement.Infrastructure.Registration
 
         protected override void Load(ContainerBuilder builder)
         {
+            // 1. Register Interceptors first
+            RegisterInterceptors(builder);
 
-            // Repos & services
-            builder.RegisterType<OrderRepository>()
-                   .As<IOrderRepository>()
-                   .EnableInterfaceInterceptors()
-                   .InterceptedBy(typeof(BatchLoggingInterceptor));
+            // 2. Scan Assemblies for Repositories and Services
+            var infrastructureAssembly = typeof(OrderRepository).Assembly;
+            var applicationAssembly = typeof(IOrderService).Assembly;
 
-            builder.RegisterType<OrderService>()
-                   .As<IOrderService>()
-                   .EnableInterfaceInterceptors()
-                   .InterceptedBy(GetInterceptorType());
+            // Get the correct interceptor type based on _contextType (API, Batch, Cron)
+            var interceptorType = GetInterceptorType();
 
-            builder.RegisterType<CustomerRepository>()
-                    .As<ICustomerRepository>()
-                   .EnableInterfaceInterceptors()
-                   .InterceptedBy(typeof(BatchLoggingInterceptor));
+            // Register Repositories (Infrastructure Assembly)
+            builder.RegisterAssemblyTypes(infrastructureAssembly)
+                .Where(t => t.Name.EndsWith("Repository"))
+                .AsImplementedInterfaces()
+                .EnableInterfaceInterceptors()
+                .InterceptedBy(interceptorType) 
+                .InstancePerLifetimeScope();
 
-            builder.RegisterType<CustomerService>()
-                   .As<ICustomerService>()
-                   .EnableInterfaceInterceptors()
-                   .InterceptedBy(GetInterceptorType());
+            // Register Services (Application Assembly)
+            builder.RegisterAssemblyTypes(applicationAssembly)
+                .Where(t => t.Name.EndsWith("Service"))
+                .AsImplementedInterfaces()
+                .EnableInterfaceInterceptors()
+                .InterceptedBy(interceptorType)
+                .InstancePerLifetimeScope();
+        }
 
-            // Register the chosen interceptor
+        private void RegisterInterceptors(ContainerBuilder builder)
+        {
             switch (_contextType)
             {
                 case "API":
                     builder.RegisterType<ApiLoggingInterceptor>();
                     break;
+
                 case "Batch":
                     builder.RegisterType<BatchLoggingInterceptor>()
                            .WithParameter("jobName", _jobName);
                     break;
+
                 case "Cron":
                     builder.RegisterType<CronLoggingInterceptor>()
                            .WithParameter("jobName", _jobName);
                     break;
+
                 default:
                     builder.RegisterType<DefaultLoggingInterceptor>();
                     break;
             }
-
         }
 
         private Type GetInterceptorType()

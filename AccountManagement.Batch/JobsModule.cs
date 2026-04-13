@@ -19,7 +19,7 @@ namespace AccountManagement.Batch
 
             // Only scan assemblies that match your naming convention
             var assemblies = AppDomain.CurrentDomain.GetAssemblies()
-                .Where(a => a.GetName().Name.StartsWith(assemblyName, StringComparison.OrdinalIgnoreCase))
+                .Where(a => a.GetName().Name?.StartsWith(assemblyName, StringComparison.OrdinalIgnoreCase) == true)
                 .ToArray();
 
             var jobType = assemblies

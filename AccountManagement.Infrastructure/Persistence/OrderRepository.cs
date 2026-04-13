@@ -31,12 +31,12 @@ namespace AccountManagement.Infrastructure.Persistence
             return Task.FromResult(order);
         }
 
-        Task<IEnumerable<Order>> IRepository<Order>.GetAllAsync(CancellationToken ct = default)
+        Task<IEnumerable<Order>> IRepository<Order>.GetAllAsync(CancellationToken ct)
         {
             return Task.FromResult<IEnumerable<Order>>(_orders.Values.ToList());
         }
 
-        Task<int> IRepository<Order>.AddAsync(Order order, CancellationToken ct = default)
+        Task<int> IRepository<Order>.AddAsync(Order order, CancellationToken ct)
         {
             if (order == null) throw new ArgumentNullException(nameof(order));
 
@@ -47,7 +47,7 @@ namespace AccountManagement.Infrastructure.Persistence
             return Task.FromResult(id);
         }
 
-        Task IRepository<Order>.UpdateAsync(Order order, CancellationToken ct = default)
+        Task IRepository<Order>.UpdateAsync(Order order, CancellationToken ct)
         {
             if (order == null) throw new ArgumentNullException(nameof(order));
             if (!_orders.ContainsKey(order.Id))
@@ -57,7 +57,7 @@ namespace AccountManagement.Infrastructure.Persistence
             return Task.CompletedTask;
         }
 
-        Task IRepository<Order>.DeleteAsync(int id, CancellationToken ct = default)
+        Task IRepository<Order>.DeleteAsync(int id, CancellationToken ct)
         {
             _orders.TryRemove(id, out _);
             return Task.CompletedTask;

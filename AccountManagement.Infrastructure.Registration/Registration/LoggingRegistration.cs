@@ -1,6 +1,4 @@
-﻿using AccountManagement.Application;
-using AccountManagement.Infrastructure.Persistence;
-using AccountManagement.Infrastructure.Registration.Enrichers;
+﻿using AccountManagement.Infrastructure.Registration.Enrichers;
 using AccountManagement.Infrastructure.Registration.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
@@ -11,12 +9,6 @@ namespace AccountManagement.Infrastructure.Registration
     {
         public static void AddInfrastructureServices(this IServiceCollection services)
         {
-            // Register repos and services
-            services.AddScoped<IOrderRepository, OrderRepository>();
-            services.AddScoped<IOrderService, OrderService>();
-            services.AddScoped<ICustomerRepository, CustomerRepository>();
-            services.AddScoped<ICustomerService, CustomerService>();
-
             services.AddTransient<ApiLoggingInterceptor>();
             services.AddTransient<BatchLoggingInterceptor>();
             services.AddTransient<CronLoggingInterceptor>();
@@ -35,9 +27,16 @@ namespace AccountManagement.Infrastructure.Registration
                 .Enrich.With<GlobalContextEnricher>() // <--- Adds your TraceId and RunId automatically
                 .Enrich.With<FlatStructureEnricher>();
 
+            // Validate keys are actually present before proceeding
+            if (string.IsNullOrEmpty(config.EncryptionKey) || string.IsNullOrEmpty(config.EncryptionIV))
+            {
+                throw new InvalidOperationException("Logging Encryption is enabled but keys are missing in appsettings.json.");
+            }
+            
             // Apply encryption if enabled
             if (config.Options?.Enabled == true && config.Options.EncryptNonWhitelisted)
             {
+                // The compiler now knows they aren't null because of the check above
                 var key = Convert.FromBase64String(config.EncryptionKey);
                 var iv = Convert.FromBase64String(config.EncryptionIV);
                 loggerConfig.Enrich.With(new EncryptionEnricher(config.Options, encryptionService)); 
